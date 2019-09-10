@@ -69,6 +69,7 @@ int zslLexValueLteMax(sds value, zlexrangespec *spec);
 /* Create a skiplist node with the specified number of levels.
  * The SDS string 'ele' is referenced by the node after the call. */
 zskiplistNode *zslCreateNode(int level, double score, sds ele) {
+    /* allocate `level` level zskiplistLevel */
     zskiplistNode *zn =
         zmalloc(sizeof(*zn)+level*sizeof(struct zskiplistLevel));
     zn->score = score;
@@ -84,6 +85,8 @@ zskiplist *zslCreate(void) {
     zsl = zmalloc(sizeof(*zsl));
     zsl->level = 1;
     zsl->length = 0;
+    /* add a header at the first of zsl
+     * header has `ZSKIPLIST_MAXLEVEL` level */
     zsl->header = zslCreateNode(ZSKIPLIST_MAXLEVEL,0,NULL);
     for (j = 0; j < ZSKIPLIST_MAXLEVEL; j++) {
         zsl->header->level[j].forward = NULL;
@@ -108,6 +111,8 @@ void zslFree(zskiplist *zsl) {
 
     zfree(zsl->header);
     while(node) {
+        /* forward direct next one
+         * backward direct previous */
         next = node->level[0].forward;
         zslFreeNode(node);
         node = next;
@@ -119,6 +124,8 @@ void zslFree(zskiplist *zsl) {
  * The return value of this function is between 1 and ZSKIPLIST_MAXLEVEL
  * (both inclusive), with a powerlaw-alike distribution where higher
  * levels are less likely to be returned. */
+/* span level in random
+ * a sensible way to cut back cost of delete node */
 int zslRandomLevel(void) {
     int level = 1;
     while ((random()&0xFFFF) < (ZSKIPLIST_P * 0xFFFF))
