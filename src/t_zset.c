@@ -86,7 +86,8 @@ zskiplist *zslCreate(void) {
     zsl->level = 1;
     zsl->length = 0;
     /* add a header at the first of zsl
-     * header has `ZSKIPLIST_MAXLEVEL` level */
+     * header has `ZSKIPLIST_MAXLEVEL` level
+     * header has linked to every node and every level */
     zsl->header = zslCreateNode(ZSKIPLIST_MAXLEVEL,0,NULL);
     for (j = 0; j < ZSKIPLIST_MAXLEVEL; j++) {
         zsl->header->level[j].forward = NULL;
@@ -142,6 +143,7 @@ zskiplistNode *zslInsert(zskiplist *zsl, double score, sds ele) {
     int i, level;
 
     serverAssert(!isnan(score));
+    /* x is the header of `zsl` */
     x = zsl->header;
     for (i = zsl->level-1; i >= 0; i--) {
         /* store rank that is crossed to reach the insert position */
@@ -171,6 +173,7 @@ zskiplistNode *zslInsert(zskiplist *zsl, double score, sds ele) {
     }
     x = zslCreateNode(level,score,ele);
     for (i = 0; i < level; i++) {
+        /* insert node into skiplist on specific level `i` */
         x->level[i].forward = update[i]->level[i].forward;
         update[i]->level[i].forward = x;
 

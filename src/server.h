@@ -804,6 +804,8 @@ typedef struct zskiplistNode {
     struct zskiplistNode *backward;
     struct zskiplistLevel {
         struct zskiplistNode *forward;
+        /* span means the length of step 
+         * the number of bottom nodes between next same level node */
         unsigned long span;
     } level[];
 } zskiplistNode;
