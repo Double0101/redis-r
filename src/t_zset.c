@@ -196,10 +196,23 @@ zskiplistNode *zslInsert(zskiplist *zsl, double score, sds ele) {
     return x;
 }
 
+/* *---------.
+ * *---------.      
+ * *-*-------.-----------*
+ * *-*---*-*-.-----*---*-*
+ * *-*---*-*-*-.---*-*---*-*
+ * *-*-*-*-*-*-.---*-*---*-*
+ * *-*-*-*-*-*-.-!-*-*-*-*-*-*
+ * 
+ * ############################## 
+ * `*``.``!` are all node in zsl
+ * update is the collection of `.`
+ * `!` is x */
 /* Internal function used by zslDelete, zslDeleteByScore and zslDeleteByRank */
 void zslDeleteNode(zskiplist *zsl, zskiplistNode *x, zskiplistNode **update) {
     int i;
     for (i = 0; i < zsl->level; i++) {
+        /* update span */
         if (update[i]->level[i].forward == x) {
             update[i]->level[i].span += x->level[i].span - 1;
             update[i]->level[i].forward = x->level[i].forward;
