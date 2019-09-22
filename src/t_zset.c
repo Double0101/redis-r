@@ -298,11 +298,12 @@ zskiplistNode *zslUpdateScore(zskiplist *zsl, double curscore, sds ele, double n
 
     /* Jump to our element: note that this function assumes that the
      * element with the matching score exists. */
+    /* find the node which score is equal to `cursocre` */
     x = x->level[0].forward;
     serverAssert(x && curscore == x->score && sdscmp(x->ele,ele) == 0);
 
-    /* If the node, after the score update, would be still exactly
-     * at the same position, we can just update the score without
+    /* If the node, after the score update, **would be still exactly
+     * at the same position**, we can just update the score without
      * actually removing and re-inserting the element in the skiplist. */
     if ((x->backward == NULL || x->backward->score < newscore) &&
         (x->level[0].forward == NULL || x->level[0].forward->score > newscore))
@@ -313,6 +314,8 @@ zskiplistNode *zslUpdateScore(zskiplist *zsl, double curscore, sds ele, double n
 
     /* No way to reuse the old node: we need to remove and insert a new
      * one at a different place. */
+    /* remove the old one without release
+     * insert a new one with newscore and element */
     zslDeleteNode(zsl, x, update);
     zskiplistNode *newnode = zslInsert(zsl,newscore,x->ele);
     /* We reused the old node x->ele SDS string, free the node now
@@ -425,6 +428,7 @@ unsigned long zslDeleteRangeByScore(zskiplist *zsl, zrangespec *range, dict *dic
     {
         zskiplistNode *next = x->level[0].forward;
         zslDeleteNode(zsl,x,update);
+        /* zset convert by zskiplist and dict */
         dictDelete(dict,x->ele);
         zslFreeNode(x); /* Here is where x->ele is actually released. */
         removed++;
