@@ -544,8 +544,10 @@ zskiplistNode* zslGetElementByRank(zskiplist *zsl, unsigned long rank) {
 }
 
 /* Populate the rangespec according to the objects min and max. */
+/* generate zrangespec with robjs */
 static int zslParseRange(robj *min, robj *max, zrangespec *spec) {
     char *eptr;
+    /* clear and init zrangespec */
     spec->minex = spec->maxex = 0;
 
     /* Parse the min-max interval. If one of the values is prefixed
@@ -556,6 +558,7 @@ static int zslParseRange(robj *min, robj *max, zrangespec *spec) {
         spec->min = (long)min->ptr;
     } else {
         if (((char*)min->ptr)[0] == '(') {
+            /* convert str to float */
             spec->min = strtod((char*)min->ptr+1,&eptr);
             if (eptr[0] != '\0' || isnan(spec->min)) return C_ERR;
             spec->minex = 1;
@@ -662,12 +665,14 @@ int sdscmplex(sds a, sds b) {
     return sdscmp(a,b);
 }
 
+/* check value > spec.min */
 int zslLexValueGteMin(sds value, zlexrangespec *spec) {
     return spec->minex ?
         (sdscmplex(value,spec->min) > 0) :
         (sdscmplex(value,spec->min) >= 0);
 }
 
+/* check value < spec.max */
 int zslLexValueLteMax(sds value, zlexrangespec *spec) {
     return spec->maxex ?
         (sdscmplex(value,spec->max) < 0) :
