@@ -764,6 +764,7 @@ double zzlGetScore(unsigned char *sptr) {
     if (vstr) {
         memcpy(buf,vstr,vlen);
         buf[vlen] = '\0';
+        /* convert str to double */
         score = strtod(buf,NULL);
     } else {
         score = vlong;

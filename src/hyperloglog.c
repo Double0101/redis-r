@@ -194,7 +194,9 @@ struct hllhdr {
 #define HLL_P 14 /* The greater is P, the smaller the error. */
 #define HLL_Q (64-HLL_P) /* The number of bits of the hash value used for
                             determining the number of leading zeros. */
+/* 1 << 14 => 0100,0000,0000,0000*/
 #define HLL_REGISTERS (1<<HLL_P) /* With P=14, 16384 registers. */
+/* 0011,1111,1111,1111 */
 #define HLL_P_MASK (HLL_REGISTERS-1) /* Mask to index register. */
 #define HLL_BITS 6 /* Enough to count up to 63 leading zeroes. */
 #define HLL_REGISTER_MAX ((1<<HLL_BITS)-1)
@@ -464,8 +466,13 @@ int hllPatLen(unsigned char *ele, size_t elesize, long *regp) {
      * This may sound like inefficient, but actually in the average case
      * there are high probabilities to find a 1 after a few iterations. */
     hash = MurmurHash64A(ele,elesize,0xadc83b19ULL);
+    /* equals to hash % 2^14 => 16384 
+     * HLL_P_MASK = 0011,1111,1111,1111 */
     index = hash & HLL_P_MASK; /* Register index. */
+    /* remove lower 14 bits */
     hash >>= HLL_P; /* Remove bits used to address the register. */
+    /* `hash` left HLL_Q effective bits 
+     * hash will be at lest one more bigger than before */
     hash |= ((uint64_t)1<<HLL_Q); /* Make sure the loop terminates
                                      and count will be <= Q+1. */
     bit = 1;
