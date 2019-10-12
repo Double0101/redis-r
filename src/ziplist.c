@@ -575,6 +575,17 @@ void zipEntry(unsigned char *p, zlentry *e) {
 }
 
 /* Create a new empty ziplist. */
+/* ----------------
+ * | 32 | 32 |16|8|
+ * ----------------
+ *   ^    ^   ^  ^ 
+ * |  header    |end
+ *   |    |   |  |
+ *   size of header + end
+ *        |   |  |
+ *        size of header 
+ *            |  |
+ *            0  255 */
 unsigned char *ziplistNew(void) {
     unsigned int bytes = ZIPLIST_HEADER_SIZE+ZIPLIST_END_SIZE;
     unsigned char *zl = zmalloc(bytes);
