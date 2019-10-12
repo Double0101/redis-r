@@ -263,6 +263,7 @@ uint8_t intsetFind(intset *is, int64_t value) {
 
 /* Return random member */
 int64_t intsetRandom(intset *is) {
+    /* get a random element */
     return _intsetGet(is,rand()%intrev32ifbe(is->length));
 }
 
