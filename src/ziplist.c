@@ -543,6 +543,7 @@ int64_t zipLoadInteger(unsigned char *p, unsigned char encoding) {
     } else if (encoding == ZIP_INT_16B) {
         memcpy(&i16,p,sizeof(i16));
         memrev16ifbe(&i16);
+        /* copy lower 16 bits */
         ret = i16;
     } else if (encoding == ZIP_INT_32B) {
         memcpy(&i32,p,sizeof(i32));
@@ -597,6 +598,8 @@ unsigned char *ziplistNew(void) {
 }
 
 /* Resize the ziplist. */
+/* the first four bytes store the whole length of the ziplist
+ * the last bytes always be 255 */
 unsigned char *ziplistResize(unsigned char *zl, unsigned int len) {
     zl = zrealloc(zl,len);
     ZIPLIST_BYTES(zl) = intrev32ifbe(len);
