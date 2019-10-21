@@ -477,6 +477,8 @@ unsigned int zipRawEntryLength(unsigned char *p) {
 
 /* Check if string pointed to by 'entry' can be encoded as an integer.
  * Stores the integer value in 'v' and its encoding in 'encoding'. */
+/* `entry` is the insert element
+ * `entrylen` is the length of element */
 int zipTryEncoding(unsigned char *entry, unsigned int entrylen, long long *v, unsigned char *encoding) {
     long long value;
 
@@ -576,17 +578,14 @@ void zipEntry(unsigned char *p, zlentry *e) {
 }
 
 /* Create a new empty ziplist. */
-/* ----------------
- * | 32 | 32 |16|8|
- * ----------------
- *   ^    ^   ^  ^ 
- * |  header    |end
- *   |    |   |  |
- *   size of header + end
- *        |   |  |
- *        size of header 
- *            |  |
- *            0  255 */
+/* -----------------------------------
+ * |   32   |   32   | 16 |........|8|
+ * -----------------------------------
+ * | zllen  | offset |size|        |end
+ * `zllen` is the whole length of the ziplist
+ * `offset` is the offset of last element
+ * `size` is the number of elements
+ * `end` is the flag mark the end */
 unsigned char *ziplistNew(void) {
     unsigned int bytes = ZIPLIST_HEADER_SIZE+ZIPLIST_END_SIZE;
     unsigned char *zl = zmalloc(bytes);
@@ -753,7 +752,11 @@ unsigned char *__ziplistDelete(unsigned char *zl, unsigned char *p, unsigned int
     return zl;
 }
 
-/* Insert item at "p". */
+/* Insert item at "p".
+ * `zl` is the ziplist
+ * `p` is the position
+ * `s` is the content of element
+ * `slen` is the length of element */
 unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned char *s, unsigned int slen) {
     /* p is the insert position */
     /* `curlen` is the total bytes of `zl` */
@@ -768,19 +771,24 @@ unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned cha
     zlentry tail;
 
     /* Find out prevlen for the entry that is inserted. */
+    /* `p[0]` is equal to ZIPEND
+     * it means the insert position is the end of ziplist */
     if (p[0] != ZIP_END) {
         ZIP_DECODE_PREVLEN(p, prevlensize, prevlen);
     } else {
-        unsigned char *ptail = ZIPLIST_ENTRY_TAIL(zl);
+        unsigned char *ptail = ZIPLIST_ENTRY_TAIL(zl);  /* the indicator point the last entry offset of ziplist */
         if (ptail[0] != ZIP_END) {
             prevlen = zipRawEntryLength(ptail);
         }
     }
 
     /* See if the entry can be encoded */
+    /* case 1
+     * value is the value of s
+     * encoding is the type of value */
     if (zipTryEncoding(s,slen,&value,&encoding)) {
         /* 'encoding' is set to the appropriate integer encoding */
-        reqlen = zipIntSize(encoding);
+        reqlen = zipIntSize(encoding); /* the bytes of value */
     } else {
         /* 'encoding' is untouched, however zipStoreEntryEncoding will use the
          * string length to figure out how to encode it. */
@@ -804,6 +812,7 @@ unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned cha
     /* Store offset because a realloc may change the address of zl. */
     offset = p-zl;
     zl = ziplistResize(zl,curlen+reqlen+nextdiff);
+    /* the offest of the last element & the position of the new element */
     p = zl+offset;
 
     /* Apply memory move when necessary and update tail offset. */
@@ -831,7 +840,7 @@ unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned cha
         }
     } else {
         /* This element will be the new tail. */
-        ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(p-zl);
+        ZIPLIST_TAIL_OFFSET(zl) = intrev32ifbe(p-zl); /* the position of new last element */
     }
 
     /* When nextdiff != 0, the raw length of the next entry has changed, so
