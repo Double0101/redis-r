@@ -757,6 +757,10 @@ unsigned char *__ziplistDelete(unsigned char *zl, unsigned char *p, unsigned int
  * `p` is the position
  * `s` is the content of element
  * `slen` is the length of element */
+/* the elements in ziplist is
+ * ---------------------------
+ * | prelen |encoding|element|
+ * --------------------------- */
 unsigned char *__ziplistInsert(unsigned char *zl, unsigned char *p, unsigned char *s, unsigned int slen) {
     /* p is the insert position */
     /* `curlen` is the total bytes of `zl` */
