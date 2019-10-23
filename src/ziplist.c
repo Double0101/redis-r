@@ -602,6 +602,7 @@ unsigned char *ziplistNew(void) {
 unsigned char *ziplistResize(unsigned char *zl, unsigned int len) {
     zl = zrealloc(zl,len);
     ZIPLIST_BYTES(zl) = intrev32ifbe(len);
+    /* update the end flag */
     zl[len-1] = ZIP_END;
     return zl;
 }
@@ -999,6 +1000,7 @@ unsigned char *ziplistIndex(unsigned char *zl, int index) {
         index = (-index)-1;
         p = ZIPLIST_ENTRY_TAIL(zl);
         if (p[0] != ZIP_END) {
+            /* the first byte in the element is the element size */
             ZIP_DECODE_PREVLEN(p, prevlensize, prevlen);
             while (prevlen > 0 && index--) {
                 p -= prevlen;
@@ -1008,7 +1010,7 @@ unsigned char *ziplistIndex(unsigned char *zl, int index) {
     } else {
         p = ZIPLIST_ENTRY_HEAD(zl);
         while (p[0] != ZIP_END && index--) {
-            p += zipRawEntryLength(p);
+            p += zipRawEntryLength(p);  /* calculate the length of current element */
         }
     }
     return (p[0] == ZIP_END || index > 0) ? NULL : p;
