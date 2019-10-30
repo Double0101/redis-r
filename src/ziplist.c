@@ -234,6 +234,7 @@
 
 /* Return the length of a ziplist, or UINT16_MAX if the length cannot be
  * determined without scanning the whole ziplist. */
+/* the count of elements */
 #define ZIPLIST_LENGTH(zl)      (*((uint16_t*)((zl)+sizeof(uint32_t)*2)))
 
 /* The size of a ziplist header: two 32 bit integers for the total
@@ -895,12 +896,15 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
     if (*first == *second)
         return NULL;
 
+    /* first ziplist bytes */
     size_t first_bytes = intrev32ifbe(ZIPLIST_BYTES(*first));
+    /* first ziplist size */
     size_t first_len = intrev16ifbe(ZIPLIST_LENGTH(*first));
 
     size_t second_bytes = intrev32ifbe(ZIPLIST_BYTES(*second));
     size_t second_len = intrev16ifbe(ZIPLIST_LENGTH(*second));
 
+    /* mark the target as first or second */
     int append;
     unsigned char *source, *target;
     size_t target_bytes, source_bytes;
@@ -941,6 +945,7 @@ unsigned char *ziplistMerge(unsigned char **first, unsigned char **second) {
         /* append == appending to target */
         /* Copy source after target (copying over original [END]):
          *   [TARGET - END, SOURCE - HEADER] */
+        /* copy include source element and END */
         memcpy(target + target_bytes - ZIPLIST_END_SIZE,
                source + ZIPLIST_HEADER_SIZE,
                source_bytes - ZIPLIST_HEADER_SIZE);
