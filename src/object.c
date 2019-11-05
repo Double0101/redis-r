@@ -48,6 +48,8 @@ robj *createObject(int type, void *ptr) {
     /* Set the LRU to the current lruclock (minutes resolution), or
      * alternatively the LFU counter. */
     if (server.maxmemory_policy & MAXMEMORY_FLAG_LFU) {
+        /* lru total 24 bits
+         * 5 in lower 8 bits, LFUTime in other 16bits */
         o->lru = (LFUGetTimeInMinutes()<<8) | LFU_INIT_VAL;
     } else {
         o->lru = LRU_CLOCK();
@@ -68,19 +70,23 @@ robj *createObject(int type, void *ptr) {
  */
 robj *makeObjectShared(robj *o) {
     serverAssert(o->refcount == 1);
+    /* refcount is the reference count */
     o->refcount = OBJ_SHARED_REFCOUNT;
     return o;
 }
 
 /* Create a string object with encoding OBJ_ENCODING_RAW, that is a plain
  * string object where o->ptr points to a proper sds string. */
+/* store the sds indicator point in the obj */
 robj *createRawStringObject(const char *ptr, size_t len) {
+    /* OBJ_STRING is type string */
     return createObject(OBJ_STRING, sdsnewlen(ptr,len));
 }
 
 /* Create a string object with encoding OBJ_ENCODING_EMBSTR, that is
  * an object where the sds string is actually an unmodifiable string
  * allocated in the same chunk as the object itself. */
+/* store the whole sds in the obj */
 robj *createEmbeddedStringObject(const char *ptr, size_t len) {
     robj *o = zmalloc(sizeof(robj)+sizeof(struct sdshdr8)+len+1);
     struct sdshdr8 *sh = (void*)(o+1);
@@ -95,6 +101,7 @@ robj *createEmbeddedStringObject(const char *ptr, size_t len) {
         o->lru = LRU_CLOCK();
     }
 
+    /* initialize the sds instance */
     sh->len = len;
     sh->alloc = len;
     sh->flags = SDS_TYPE_8;
@@ -116,6 +123,7 @@ robj *createEmbeddedStringObject(const char *ptr, size_t len) {
  * The current limit of 44 is chosen so that the biggest string object
  * we allocate as EMBSTR will still fit into the 64 byte arena of jemalloc. */
 #define OBJ_ENCODING_EMBSTR_SIZE_LIMIT 44
+/* select embedded string or raw string depend on `len` */
 robj *createStringObject(const char *ptr, size_t len) {
     if (len <= OBJ_ENCODING_EMBSTR_SIZE_LIMIT)
         return createEmbeddedStringObject(ptr,len);
