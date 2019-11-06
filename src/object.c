@@ -149,6 +149,8 @@ robj *createStringObjectFromLongLongWithOptions(long long value, int valueobj) {
         valueobj = 0;
     }
 
+    /* If valueobj == 0, the value used to be a key,
+     * it means the value is consistant can be shared */
     if (value >= 0 && value < OBJ_SHARED_INTEGERS && valueobj == 0) {
         incrRefCount(shared.integers[value]);
         o = shared.integers[value];
@@ -158,6 +160,8 @@ robj *createStringObjectFromLongLongWithOptions(long long value, int valueobj) {
             o->encoding = OBJ_ENCODING_INT;
             o->ptr = (void*)((long)value);
         } else {
+            /* Too long to store as a long integer
+             * store as a sds */
             o = createObject(OBJ_STRING,sdsfromlonglong(value));
         }
     }
@@ -165,7 +169,7 @@ robj *createStringObjectFromLongLongWithOptions(long long value, int valueobj) {
 }
 
 /* Wrapper for createStringObjectFromLongLongWithOptions() always demanding
- * to create a shared object if possible. */
+ * to create a *shared* object if possible. */
 robj *createStringObjectFromLongLong(long long value) {
     return createStringObjectFromLongLongWithOptions(value,0);
 }
@@ -186,6 +190,7 @@ robj *createStringObjectFromLongLongForValue(long long value) {
  * The 'humanfriendly' option is used for INCRBYFLOAT and HINCRBYFLOAT. */
 robj *createStringObjectFromLongDouble(long double value, int humanfriendly) {
     char buf[MAX_LONG_DOUBLE_CHARS];
+    /* humanfriendly used to format the value */
     int len = ld2string(buf,sizeof(buf),value,humanfriendly);
     return createStringObject(buf,len);
 }
@@ -208,6 +213,7 @@ robj *dupStringObject(const robj *o) {
         return createRawStringObject(o->ptr,sdslen(o->ptr));
     case OBJ_ENCODING_EMBSTR:
         return createEmbeddedStringObject(o->ptr,sdslen(o->ptr));
+    /* numeric value is stored as a string */
     case OBJ_ENCODING_INT:
         d = createObject(OBJ_STRING, NULL);
         d->encoding = OBJ_ENCODING_INT;
@@ -355,11 +361,13 @@ void freeStreamObject(robj *o) {
 }
 
 void incrRefCount(robj *o) {
+    /* increase the reference count */
     if (o->refcount != OBJ_SHARED_REFCOUNT) o->refcount++;
 }
 
 void decrRefCount(robj *o) {
     if (o->refcount == 1) {
+        /* release robj when no other obj refer o */
         switch(o->type) {
         case OBJ_STRING: freeStringObject(o); break;
         case OBJ_LIST: freeListObject(o); break;
@@ -396,6 +404,7 @@ void decrRefCountVoid(void *o) {
  *    functionThatWillIncrementRefCount(obj);
  *    decrRefCount(obj);
  */
+/* set refCount equals 0 without release */
 robj *resetRefCount(robj *obj) {
     obj->refcount = 0;
     return obj;

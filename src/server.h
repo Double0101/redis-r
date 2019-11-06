@@ -463,6 +463,7 @@ typedef long long mstime_t; /* millisecond time type. */
 /* A redis object, that is a type able to hold a string / list / set */
 
 /* The actual Redis Object */
+/* five kinds of redis data structions */
 #define OBJ_STRING 0    /* String object. */
 #define OBJ_LIST 1      /* List object. */
 #define OBJ_SET 2       /* Set object. */
