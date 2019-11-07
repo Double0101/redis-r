@@ -428,6 +428,7 @@ int isObjectRepresentableAsLongLong(robj *o, long long *llval) {
         if (llval) *llval = (long) o->ptr;
         return C_OK;
     } else {
+        /* if value is too big, maybe it will be stored as a sds */
         return isSdsRepresentableAsLongLong(o->ptr,llval);
     }
 }
@@ -437,9 +438,11 @@ int isObjectRepresentableAsLongLong(robj *o, long long *llval) {
  * string. This happens because SDS strings tend to overallocate to avoid
  * wasting too much time in allocations when appending to the string. */
 void trimStringObjectIfNeeded(robj *o) {
+    /* if too many sds avail bytes */
     if (o->encoding == OBJ_ENCODING_RAW &&
         sdsavail(o->ptr) > sdslen(o->ptr)/10)
     {
+        /* release extra bytes */
         o->ptr = sdsRemoveFreeSpace(o->ptr);
     }
 }
@@ -459,6 +462,7 @@ robj *tryObjectEncoding(robj *o) {
     /* We try some specialized encoding only for objects that are
      * RAW or EMBSTR encoded, in other words objects that are still
      * in represented by an actually array of chars. */
+    /* ensure o is a sds obj */
     if (!sdsEncodedObject(o)) return o;
 
     /* It's not safe to encode shared objects: shared objects can be shared
@@ -480,6 +484,8 @@ robj *tryObjectEncoding(robj *o) {
             value >= 0 &&
             value < OBJ_SHARED_INTEGERS)
         {
+            /* release original obj
+             * use the applicable obj shared pool */
             decrRefCount(o);
             incrRefCount(shared.integers[value]);
             return shared.integers[value];
@@ -495,6 +501,7 @@ robj *tryObjectEncoding(robj *o) {
      * try the EMBSTR encoding which is more efficient.
      * In this representation the object and the SDS string are allocated
      * in the same chunk of memory to save space and cache misses. */
+    /* it will be more efficient to use a embedded policy */
     if (len <= OBJ_ENCODING_EMBSTR_SIZE_LIMIT) {
         robj *emb;
 
