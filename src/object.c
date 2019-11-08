@@ -578,6 +578,8 @@ int compareStringObjectsWithFlags(robj *a, robj *b, int flags) {
         bstr = bufb;
     }
     if (flags & REDIS_COMPARE_COLL) {
+        /* compare two sds with local-specific rules
+         * according to env variables LC_COLLATE */
         return strcoll(astr,bstr);
     } else {
         int cmp;
@@ -633,6 +635,7 @@ int getDoubleFromObject(const robj *o, double *target) {
         serverAssertWithInfo(NULL,o,o->type == OBJ_STRING);
         if (sdsEncodedObject(o)) {
             errno = 0;
+            /* eptr will be set as the next bytes of the value */
             value = strtod(o->ptr, &eptr);
             if (sdslen(o->ptr) == 0 ||
                 isspace(((const char*)o->ptr)[0]) ||
@@ -651,6 +654,7 @@ int getDoubleFromObject(const robj *o, double *target) {
     return C_OK;
 }
 
+/* msg is the error message */
 int getDoubleFromObjectOrReply(client *c, robj *o, double *target, const char *msg) {
     double value;
     if (getDoubleFromObject(o, &value) != C_OK) {
