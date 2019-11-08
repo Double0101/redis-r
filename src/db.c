@@ -172,6 +172,9 @@ robj *lookupKeyWriteOrReply(client *c, robj *key, robj *reply) {
  * The program is aborted if the key already exists. */
 void dbAdd(redisDb *db, robj *key, robj *val) {
     sds copy = sdsdup(key->ptr);
+    /* all kv is stored in a big dict
+     * key is sds
+     * val is redisObject */
     int retval = dictAdd(db->dict, copy, val);
 
     serverAssertWithInfo(NULL,key,retval == DICT_OK);
@@ -201,7 +204,7 @@ void dbOverwrite(redisDb *db, robj *key, robj *val) {
         freeObjAsync(old);
         dictSetVal(db->dict, &auxentry, NULL);
     }
-
+    /* set new value and release old value */
     dictFreeVal(db->dict, &auxentry);
 }
 
@@ -220,6 +223,7 @@ void setKey(redisDb *db, robj *key, robj *val) {
         dbOverwrite(db,key,val);
     }
     incrRefCount(val);
+    /* remove the old expire informations */
     removeExpire(db,key);
     signalModifiedKey(db,key);
 }
@@ -1061,7 +1065,7 @@ void swapdbCommand(client *c) {
 /*-----------------------------------------------------------------------------
  * Expires API
  *----------------------------------------------------------------------------*/
-
+/* update expires informations */
 int removeExpire(redisDb *db, robj *key) {
     /* An expire may only be removed if there is a corresponding entry in the
      * main dict. Otherwise, the key will never be freed. */
@@ -1073,6 +1077,7 @@ int removeExpire(redisDb *db, robj *key) {
  * of an user calling a command 'c' is the client, otherwise 'c' is set
  * to NULL. The 'when' parameter is the absolute unix time in milliseconds
  * after which the key will no longer be considered valid. */
+/* update expire info */
 void setExpire(client *c, redisDb *db, robj *key, long long when) {
     dictEntry *kde, *de;
 
