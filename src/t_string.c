@@ -190,6 +190,7 @@ void getsetCommand(client *c) {
     server.dirty++;
 }
 
+/* SETRANGE key index "xxx" */
 void setrangeCommand(client *c) {
     robj *o;
     long offset;
@@ -203,6 +204,7 @@ void setrangeCommand(client *c) {
         return;
     }
 
+    /* return the obj linked the key */
     o = lookupKeyWrite(c->db,c->argv[1]);
     if (o == NULL) {
         /* Return 0 when setting nothing on a non-existing string */
@@ -215,6 +217,7 @@ void setrangeCommand(client *c) {
         if (checkStringLength(c,offset+sdslen(value)) != C_OK)
             return;
 
+        /* create new object when new element length not exceeds allowed size */
         o = createObject(OBJ_STRING,sdsnewlen(NULL, offset+sdslen(value)));
         dbAdd(c->db,c->argv[1],o);
     } else {
