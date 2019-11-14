@@ -60,6 +60,7 @@ robj *listTypePop(robj *subject, int where) {
 
     int ql_where = where == LIST_HEAD ? QUICKLIST_HEAD : QUICKLIST_TAIL;
     if (subject->encoding == OBJ_ENCODING_QUICKLIST) {
+        /* return type defined in listPopSaver */
         if (quicklistPopCustom(subject->ptr, ql_where, (unsigned char **)&value,
                                NULL, &vlong, listPopSaver)) {
             if (!value)
@@ -102,6 +103,7 @@ listTypeIterator *listTypeInitIterator(robj *subject, long index,
 
 /* Clean up the iterator. */
 void listTypeReleaseIterator(listTypeIterator *li) {
+    /* release iter first prevent to mem leakage */
     zfree(li->iter);
     zfree(li);
 }
@@ -109,6 +111,7 @@ void listTypeReleaseIterator(listTypeIterator *li) {
 /* Stores pointer to current the entry in the provided entry structure
  * and advances the position of the iterator. Returns 1 when the current
  * entry is in fact an entry, 0 otherwise. */
+/* return the value in entry */
 int listTypeNext(listTypeIterator *li, listTypeEntry *entry) {
     /* Protect from converting when iterating */
     serverAssert(li->subject->encoding == li->encoding);
@@ -123,6 +126,7 @@ int listTypeNext(listTypeIterator *li, listTypeEntry *entry) {
 }
 
 /* Return entry or NULL at the current position of the iterator. */
+/* pack the result value */
 robj *listTypeGet(listTypeEntry *entry) {
     robj *value = NULL;
     if (entry->li->encoding == OBJ_ENCODING_QUICKLIST) {
